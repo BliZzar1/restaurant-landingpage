@@ -50,8 +50,7 @@ steps:
 
       # CORRECTION : Créer un identifiant de version robuste
       - export
-      - export COMMIT_HASH=$(echo $CI_COMMIT_SHA | cut -c 1-8)
-      - export ARCHIVE_NAME="hugo-build-${COMMIT_HASH}.tar.gz"
+      - export ARCHIVE_NAME="hugo-build-${CI_COMMIT_SHA}.tar.gz"
 
       # Créer l'archive tar.gz
       - tar -czf ${ARCHIVE_NAME} -C ./public .
