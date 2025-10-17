@@ -44,16 +44,9 @@ steps:
     environment:
       <<: *env
     commands:
-      # Créer un nom de version unique basé sur les 8 premiers caractères du hash du commit.
       - export RELEASE_VERSION=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
       - export ARCHIVE_NAME="hugo-build-${RELEASE_VERSION}.tar.gz"
-      - echo "Préparation de l'archive : ${ARCHIVE_NAME}"
-
-      # Créer l'archive tar.gz du contenu du dossier 'public'.
       - tar -czf ${ARCHIVE_NAME} -C ./public .
-
-      # Téléverser l'archive unique vers le bucket S3 de release.
-      # La commande ajoute elle-même le "s3://".
       - echo "Téléversement de l'archive vers s3://${RELEASE_S3_BUCKET}/"
       - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
     when:
