@@ -44,7 +44,7 @@ steps:
       <<: *env
     commands:
       - export AWS_DEFAULT_REGION="us-east-1"
-      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --acl public-read --exclude ".DS_Store"
+      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
     when:
       event: push
       branch: master
