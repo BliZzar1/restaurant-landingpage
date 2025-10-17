@@ -13,9 +13,14 @@ trigger:
     - push
 
 # --- Variables & Secrets ---
-# Ancre YAML pour réutiliser la configuration de l'URL de base.
-x-hugo-env: &hugo_env
+env: &env
   BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+  AWS_SESSION_TOKEN:
+    from_secret: aws_session_token
+  AWS_ACCESS_KEY_ID:
+    from_secret: aws_access_key_id
+  AWS_SECRET_ACCESS_KEY:
+    from_secret: aws_secret_access_key
 
 # --- Étapes de la Pipeline (Steps) ---
 steps:
@@ -24,7 +29,7 @@ steps:
     image: peaceiris/hugo:v0.124.1 # Utilisation d'une version plus récente et populaire
     pull: if-not-exists
     environment:
-      <<: *hugo_env
+      <<: *env
     commands:
       # Génère le site statique dans le dossier 'public'
       - hugo --minify --baseURL $BASE_URL
@@ -33,25 +38,13 @@ steps:
         - push
 
   # Étape 2 : Déploiement sur AWS S3
-  - name: deploy-to-s3
-    image: plugins/s3
-    settings:
-      # Secrets : à configurer dans l'interface de Drone (Settings > Secrets)
-      aws_access_key_id:
-        from_secret: aws_access_key_id
-      aws_secret_access_key:
-        from_secret: aws_secret_access_key
-      
-      # Nom du bucket S3 de destination
-      bucket: restaurant-vbucket
-      # Région AWS du bucket
-      region: us-east-1
-      # Dossier source (généré par l'étape 'hugo-build')
-      source: public/**
-      # Dossier de destination dans le bucket (optionnel, '/' par défaut)
-      target: /
-      # Supprime les fichiers distants qui n'existent pas dans la source
-      delete: true
+  - name: publish-website-s3
+    image: amazon/aws-cli
+    environment:
+      <<: *env
+    commands:
+      - export AWS_DEFAULT_REGION="us-east-1"
+      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --acl public-read --exclude ".DS_Store"
     when:
-      event:
-        - push
+      event: push
+      branch: master
