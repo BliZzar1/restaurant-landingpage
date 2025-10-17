@@ -53,10 +53,8 @@ steps:
       - export ARCHIVE_NAME="hugo-build-${CI_COMMIT_SHA}.tar.gz"
 
       # Créer l'archive tar.gz
-      - tar -czf ${ARCHIVE_NAME} -C ./public .
-
-      # Téléverser l'archive
-      - echo "Téléversement de l'archive vers s3://${RELEASE_S3_BUCKET}/"
+      - tar -czf ${ARCHIVE_NAME} public/
+      - echo hugo-build-${CI_BUILD_NUMBER}.tar.gz
       - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
     when:
       event:
