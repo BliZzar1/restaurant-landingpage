@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: hugo-website-ci
+name: hugo-website-build
 
 # --- Variables & Secrets ---
 env: &env
@@ -37,7 +37,7 @@ steps:
 ---
 kind: pipeline
 type: docker
-name: hugo-website-ci
+name: hugo-website-push-release
 
 # --- Variables & Secrets ---
 env: &env
@@ -78,6 +78,7 @@ steps:
 ---
 # Étape 3 : Déploiement vers l'environnement de staging
 kind: pipeline
+type: docker
 name: deploy-to-staging
 
 # --- Variables & Secrets ---
