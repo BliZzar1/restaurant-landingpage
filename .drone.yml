@@ -33,9 +33,6 @@ steps:
     when:
       event:
         - push
-      branch: 
-        - main
-        - master
 
   # Étape 2 : Empaquetage et déploiement de la release
   - name: package-and-deploy-release
@@ -55,3 +52,20 @@ steps:
     branch:
       - main
       - master
+
+  # Étape 3 : Déploiement vers l'environnement de staging
+  - name: deploy-to-staging
+    image: amazon/aws-cli:latest
+    pull: if-not-exists
+    environment:
+      <<: *env
+    commands:
+      - echo "Deploying to staging S3 bucket..."
+      # récupérer les zip dans le bucket de release
+      - aws s3 cp $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip .
+      - unzip -o ${DRONE_COMMIT_SHA:0:8}.zip -d ./public
+      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
+    event:
+      - promote
+    target:
+      - staging
