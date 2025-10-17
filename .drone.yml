@@ -44,6 +44,8 @@ steps:
     environment:
       <<: *env
     commands:
+      - yum install -y zip
+      - yum install -y tar
       - export RELEASE_VERSION=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
       - export ARCHIVE_NAME="hugo-build-${RELEASE_VERSION}.tar.gz"
       - tar -czf ${ARCHIVE_NAME} -C ./public .
