@@ -3,15 +3,6 @@ kind: pipeline
 type: docker
 name: hugo-website-ci
 
-# --- Déclencheurs (Triggers) ---
-# Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
-trigger:
-  branch:
-    - main
-    - master
-  event:
-    - push
-
 # --- Variables & Secrets ---
 env: &env
   BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
@@ -21,6 +12,12 @@ env: &env
     from_secret: aws_access_key_id
   AWS_SECRET_ACCESS_KEY:
     from_secret: aws_secret_access_key
+
+# --- Déclencheurs (Triggers) ---
+# Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
+trigger:
+  event:
+    - push
 
 # --- Étapes de la Pipeline (Steps) ---
 steps:
@@ -46,5 +43,6 @@ steps:
       - export AWS_DEFAULT_REGION="us-east-1"
       - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
     when:
-      event: push
+      event: 
+        - push
       branch: master
