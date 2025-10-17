@@ -20,10 +20,6 @@ env: &env
 trigger:
   event:
     - push
-  branch:
-    exclude:
-      - main
-      - master
 
 steps:
   # Étape 1 : Build du site statique Hugo
