@@ -53,7 +53,6 @@ steps:
       - export TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       - export RELEASE_VERSION="${TIMESTAMP}-${COMMIT_HASH}"
       - export ARCHIVE_NAME="hugo-build-${RELEASE_VERSION}.tar.gz"
-      - echo "Préparation de l'archive : ${ARCHIVE_NAME}"
 
       # Créer l'archive tar.gz
       - tar -czf ${ARCHIVE_NAME} -C ./public .
