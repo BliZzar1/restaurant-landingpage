@@ -45,21 +45,13 @@ steps:
       <<: *env
     commands:
       # Installer 'tar' car il n'est pas dans l'image
-      - yum install -y tar
-      - yum install -y gzip
-
-      # CORRECTION : Créer un identifiant de version robuste
-      - export
-      - export ARCHIVE_NAME="hugo-build-${CI_COMMIT_SHA}.tar.gz"
-      - echo $ARCHIVE_NAME
-      - ls -lah public/
-      # Créer l'archive tar.gz
-      - tar -czf ${ARCHIVE_NAME} public .
-      - echo hugo-build-${CI_BUILD_NUMBER}.tar.gz
-      - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
-    when:
-      event:
-        - push
-      branch:
-        - main
-        - master
+      - yum install -y zip
+      - echo "Archiving ./public directory..."
+      - zip -r release.zip ./public
+      - echo "Uploading release artifact to S3..."
+      - aws s3 cp release.zip $S3_URI_RELEASES/resto/${DRONE_COMMIT_SHA:0:7}.zip
+    event:
+      - push
+    branch:
+      - main
+      - master
