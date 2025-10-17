@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: hugo-website-build
+name: hugo-website-build-and-release
 
 # --- Variables & Secrets ---
 env: &env
@@ -31,33 +31,6 @@ steps:
     commands:
       - hugo --minify --baseURL $PROD_BASE_URL
 
----
-kind: pipeline
-type: docker
-name: hugo-website-push-release
-
-# --- Variables & Secrets ---
-env: &env
-  ENV: dev
-  PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
-  STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
-  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
-  AWS_SESSION_TOKEN:
-    from_secret: aws_session_token
-  AWS_ACCESS_KEY_ID:
-    from_secret: aws_access_key_id
-  AWS_SECRET_ACCESS_KEY:
-    from_secret: aws_secret_access_key
-
-# --- Déclencheurs (Triggers) ---
-trigger:
-  event:
-    - push
-  branch:
-    - main
-    - master
-
-steps:
   # Étape 2 : Empaquetage et déploiement de la release
   - name: package-and-deploy-release
     image: amazon/aws-cli:latest
@@ -71,9 +44,16 @@ steps:
       - zip -r release.zip ./public
       - echo "Uploading release artifact to S3..."
       - aws s3 cp release.zip $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip
+    when:
+      event:
+        - push
+      branch:
+        include:
+          - main
+          - master
 
 ---
-# Étape 3 : Déploiement vers l'environnement de staging
+# Étape 2 : Déploiement vers l'environnement de staging
 kind: pipeline
 type: docker
 name: deploy-to-staging
