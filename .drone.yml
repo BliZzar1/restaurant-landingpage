@@ -1,20 +1,13 @@
 ---
+hugo_env: &hugo_env
+   BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+
 kind: pipeline
-type: docker
-name: greeting
-
+name: hugo-website
 steps:
-- name: en
-  image: alpine
-  commands:
-  - echo hello world
-
-- name: fr
-  image: alpine
-  commands:
-  - echo bonjour monde
-
-- name: es
-  image: alpine
-  commands:
-  - echo hola mundo    
+  - name: hugo-build
+    image: peaceiris/hugo:v0.65.3-mod
+    environment:
+      <<: *hugo_env
+    commands:
+      - hugo --baseURL $BASE_URL
