@@ -45,3 +45,6 @@ steps:
     when:
       event:
         - push
+      branch: 
+        - main
+        - master
