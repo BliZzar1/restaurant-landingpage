@@ -1,11 +1,13 @@
----
 kind: pipeline
 type: docker
 name: hugo-website-ci
 
 # --- Variables & Secrets ---
 env: &env
-  BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+  ENV: dev
+  PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+  STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
+  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
   AWS_SESSION_TOKEN:
     from_secret: aws_session_token
   AWS_ACCESS_KEY_ID:
@@ -14,37 +16,99 @@ env: &env
     from_secret: aws_secret_access_key
 
 # --- Déclencheurs (Triggers) ---
-# Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
 trigger:
   event:
     - push
+  branch:
+    exclude:
+      - main
+      - master
 
-# --- Étapes de la Pipeline (Steps) ---
 steps:
   # Étape 1 : Build du site statique Hugo
   - name: hugo-build
-    image: peaceiris/hugo:v0.124.1 # Utilisation d'une version plus récente et populaire
+    image: peaceiris/hugo:v0.124.1
     pull: if-not-exists
     environment:
       <<: *env
     commands:
-      # Génère le site statique dans le dossier 'public'
-      - hugo --minify --baseURL $BASE_URL
-    when:
-      event:
-        - push
+      - hugo --minify --baseURL $PROD_BASE_URL
 
-  # Étape 2 : Déploiement sur AWS S3
-  - name: publish-website-s3
-    image: amazon/aws-cli
+---
+kind: pipeline
+type: docker
+name: hugo-website-ci
+
+# --- Variables & Secrets ---
+env: &env
+  ENV: dev
+  PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+  STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
+  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
+  AWS_SESSION_TOKEN:
+    from_secret: aws_session_token
+  AWS_ACCESS_KEY_ID:
+    from_secret: aws_access_key_id
+  AWS_SECRET_ACCESS_KEY:
+    from_secret: aws_secret_access_key
+
+# --- Déclencheurs (Triggers) ---
+trigger:
+  event:
+    - push
+  branch:
+    - main
+    - master
+
+steps:
+  # Étape 2 : Empaquetage et déploiement de la release
+  - name: package-and-deploy-release
+    image: amazon/aws-cli:latest
+    pull: if-not-exists
     environment:
       <<: *env
     commands:
-      - export AWS_DEFAULT_REGION="us-east-1"
-      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
-    when:
-      event: 
-        - push
-      branch: master
+      # Installer 'tar' car il n'est pas dans l'image
+      - yum install -y zip
+      - echo "Archiving ./public directory..."
+      - zip -r release.zip ./public
+      - echo "Uploading release artifact to S3..."
+      - aws s3 cp release.zip $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip
 
-  
+---
+# Étape 3 : Déploiement vers l'environnement de staging
+kind: pipeline
+name: deploy-to-staging
+
+# --- Variables & Secrets ---
+env: &env
+  ENV: dev
+  PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+  STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
+  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
+  AWS_SESSION_TOKEN:
+    from_secret: aws_session_token
+  AWS_ACCESS_KEY_ID:
+    from_secret: aws_access_key_id
+  AWS_SECRET_ACCESS_KEY:
+    from_secret: aws_secret_access_key
+
+trigger:
+  event:
+    - promote
+  target:
+    - staging
+
+steps:
+  - name: deploy-to-staging
+    image: amazon/aws-cli:latest
+    pull: if-not-exists
+    environment:
+      <<: *env
+    commands:
+      - yum install -y unzip
+      - echo "Deploying to staging S3 bucket..."
+      # récupérer les zip dans le bucket de release
+      - aws s3 cp $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip .
+      - unzip -o ${DRONE_COMMIT_SHA:0:8}.zip -d ./public
+      - aws s3 sync public/ s3://staging-restaurant-vbucket/ --delete --exclude ".DS_Store"
