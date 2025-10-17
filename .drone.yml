@@ -54,7 +54,7 @@ steps:
       - echo $ARCHIVE_NAME
       - ls -lah public/
       # Créer l'archive tar.gz
-      - tar -czf ${ARCHIVE_NAME} public/ .
+      - tar -czf ${ARCHIVE_NAME} public .
       - echo hugo-build-${CI_BUILD_NUMBER}.tar.gz
       - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
     when:
