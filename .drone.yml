@@ -1,13 +1,56 @@
 ---
-hugo_env: &hugo_env
-   BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
-
 kind: pipeline
-name: hugo-website
+type: docker
+name: hugo-website-ci
+
+# --- Déclencheurs (Triggers) ---
+# Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
+trigger:
+  branch:
+    - master
+  event:
+    - push
+
+# --- Variables & Secrets ---
+# Ancre YAML pour réutiliser la configuration de l'URL de base.
+x-hugo-env: &hugo_env
+  BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
+
+# --- Étapes de la Pipeline (Steps) ---
 steps:
+  # Étape 1 : Build du site statique Hugo
   - name: hugo-build
-    image: peaceiris/hugo:v0.65.3-mod
+    image: peaceiris/hugo:v0.124.1 # Utilisation d'une version plus récente et populaire
+    pull: if-not-exists
     environment:
       <<: *hugo_env
     commands:
-      - hugo --baseURL $BASE_URL
+      # Génère le site statique dans le dossier 'public'
+      - hugo --minify --baseURL $BASE_URL
+    when:
+      event:
+        - push
+
+  # Étape 2 : Déploiement sur AWS S3
+  - name: deploy-to-s3
+    image: plugins/s3
+    settings:
+      # Secrets : à configurer dans l'interface de Drone (Settings > Secrets)
+      aws_access_key_id:
+        from_secret: aws_access_key_id
+      aws_secret_access_key:
+        from_secret: aws_secret_access_key
+      
+      # Nom du bucket S3 de destination
+      bucket: restaurant-vbucket
+      # Région AWS du bucket
+      region: us-east-1
+      # Dossier source (généré par l'étape 'hugo-build')
+      source: public/
+      # Dossier de destination dans le bucket (optionnel, '/' par défaut)
+      target: /
+      # Supprime les fichiers distants qui n'existent pas dans la source
+      delete: true
+    when:
+      event:
+        - push
