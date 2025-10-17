@@ -7,7 +7,7 @@ env: &env
   ENV: dev
   PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
   STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
-  RELEASE_S3_BUCKET: release-restaurant-vbucket
+  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
   AWS_SESSION_TOKEN:
     from_secret: aws_session_token
   AWS_ACCESS_KEY_ID:
@@ -49,7 +49,7 @@ steps:
       - echo "Archiving ./public directory..."
       - zip -r release.zip ./public
       - echo "Uploading release artifact to S3..."
-      - aws s3 cp release.zip $S3_URI_RELEASES/resto/${DRONE_COMMIT_SHA:0:7}.zip
+      - aws s3 cp release.zip $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:7}.zip
     event:
       - push
     branch:
