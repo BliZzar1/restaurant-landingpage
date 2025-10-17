@@ -49,6 +49,7 @@ steps:
       - yum install -y gzip
 
       # CORRECTION : Créer un identifiant de version robuste
+      - export
       - export COMMIT_HASH=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
       - export TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       - export RELEASE_VERSION="${TIMESTAMP}-${COMMIT_HASH}"
