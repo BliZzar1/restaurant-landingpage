@@ -34,14 +34,17 @@ steps:
       event:
         - push
 
-  - name: deploy-to-s3-staging-bucket
-    image: amazon/aws-cli:latest
-    pull: if-not-exists
+  # Étape 2 : Déploiement sur AWS S3
+  - name: publish-website-s3
+    image: amazon/aws-cli
     environment:
       <<: *env
     commands:
-      # Synchronise le contenu généré avec le bucket S3
-      - aws s3 sync ./public s3://restaurant-vbucket --delete
+      - export AWS_DEFAULT_REGION="us-east-1"
+      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
     when:
-      event:
+      event: 
         - push
+      branch: master
+
+  
