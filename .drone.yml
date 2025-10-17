@@ -44,18 +44,26 @@ steps:
     environment:
       <<: *env
     commands:
-      - yum install -y zip
-      - yum install -y gzip
+      # Installer 'tar' car il n'est pas dans l'image
       - yum install -y tar
-      - export RELEASE_VERSION=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
+      - yum install -y gzip
+
+      # CORRECTION : Créer un identifiant de version robuste
+      - export COMMIT_HASH=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
+      - export TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+      - export RELEASE_VERSION="${TIMESTAMP}-${COMMIT_HASH}"
       - export ARCHIVE_NAME="hugo-build-${RELEASE_VERSION}.tar.gz"
+      - echo "Préparation de l'archive : ${ARCHIVE_NAME}"
+
+      # Créer l'archive tar.gz
       - tar -czf ${ARCHIVE_NAME} -C ./public .
+
+      # Téléverser l'archive
       - echo "Téléversement de l'archive vers s3://${RELEASE_S3_BUCKET}/"
       - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
     when:
       event:
         - push
-      # CORRECTION 2 : Ajout de la condition sur la branche pour la cohérence.
       branch:
         - main
         - master
