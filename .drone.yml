@@ -53,7 +53,17 @@ steps:
       - main
       - master
 
-  # Étape 3 : Déploiement vers l'environnement de staging
+# Étape 3 : Déploiement vers l'environnement de staging
+kind: pipeline
+name: deploy-to-staging
+
+trigger:
+  event:
+    - promote
+  target:
+    - staging
+
+steps:
   - name: deploy-to-staging
     image: amazon/aws-cli:latest
     pull: if-not-exists
@@ -65,8 +75,4 @@ steps:
       # récupérer les zip dans le bucket de release
       - aws s3 cp $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip .
       - unzip -o ${DRONE_COMMIT_SHA:0:8}.zip -d ./public
-      - aws s3 sync public/ s3://restaurant-vbucket/ --delete --exclude ".DS_Store"
-    event:
-      - promote
-    target:
-      - staging
+      - aws s3 sync public/ s3://staging-restaurant-vbucket/ --delete --exclude ".DS_Store"
