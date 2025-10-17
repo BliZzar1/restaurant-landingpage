@@ -60,6 +60,7 @@ steps:
     environment:
       <<: *env
     commands:
+      - yum install -y unzip
       - echo "Deploying to staging S3 bucket..."
       # récupérer les zip dans le bucket de release
       - aws s3 cp $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip .
