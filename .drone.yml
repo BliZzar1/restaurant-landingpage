@@ -1,4 +1,3 @@
----
 kind: pipeline
 type: docker
 name: hugo-website-ci
@@ -8,7 +7,7 @@ env: &env
   ENV: dev
   PROD_BASE_URL: http://restaurant-vbucket.s3-website-us-east-1.amazonaws.com/
   STAGING_BASE_URL: http://staging-restaurant-vbucket.s3-website-us-east-1.amazonaws.com
-  RELEASE_S3_BUCKET: s3://release-restaurant-vbucket
+  RELEASE_S3_BUCKET: release-restaurant-vbucket
   AWS_SESSION_TOKEN:
     from_secret: aws_session_token
   AWS_ACCESS_KEY_ID:
@@ -17,7 +16,6 @@ env: &env
     from_secret: aws_secret_access_key
 
 # --- Déclencheurs (Triggers) ---
-# Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
 trigger:
   event:
     - push
@@ -26,12 +24,11 @@ trigger:
 steps:
   # Étape 1 : Build du site statique Hugo
   - name: hugo-build
-    image: peaceiris/hugo:v0.124.1 # Utilisation d'une version plus récente et populaire
+    image: peaceiris/hugo:v0.124.1
     pull: if-not-exists
     environment:
       <<: *env
     commands:
-      # Génère le site statique dans le dossier 'public'
       - hugo --minify --baseURL $PROD_BASE_URL
     when:
       event:
@@ -40,26 +37,29 @@ steps:
         - main
         - master
 
+  # Étape 2 : Empaquetage et déploiement de la release
   - name: package-and-deploy-release
     image: amazon/aws-cli:latest
     pull: if-not-exists
     environment:
       <<: *env
     commands:
-      # 1. Créer un nom de version unique basé sur les 8 premiers caractères du hash du commit.
-      - export RELEASE_VERSION=$(echo $DRONE_COMMIT_SHA | cut -c 1-8) # <-- Changement ici
+      # Créer un nom de version unique basé sur les 8 premiers caractères du hash du commit.
+      - export RELEASE_VERSION=$(echo $DRONE_COMMIT_SHA | cut -c 1-8)
       - export ARCHIVE_NAME="hugo-build-${RELEASE_VERSION}.tar.gz"
       - echo "Préparation de l'archive : ${ARCHIVE_NAME}"
 
-      # 2. Créer l'archive tar.gz du contenu du dossier 'public'.
+      # Créer l'archive tar.gz du contenu du dossier 'public'.
       - tar -czf ${ARCHIVE_NAME} -C ./public .
 
-      # 3. Téléverser l'archive unique vers le bucket S3 de release.
+      # Téléverser l'archive unique vers le bucket S3 de release.
+      # La commande ajoute elle-même le "s3://".
       - echo "Téléversement de l'archive vers s3://${RELEASE_S3_BUCKET}/"
       - aws s3 cp ${ARCHIVE_NAME} s3://${RELEASE_S3_BUCKET}/
     when:
       event:
         - push
-      branch: 
+      # CORRECTION 2 : Ajout de la condition sur la branche pour la cohérence.
+      branch:
         - main
         - master
