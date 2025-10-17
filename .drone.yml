@@ -89,4 +89,4 @@ steps:
       # récupérer les zip dans le bucket de release
       - aws s3 cp $RELEASE_S3_BUCKET/resto/${DRONE_COMMIT_SHA:0:8}.zip .
       - unzip -o ${DRONE_COMMIT_SHA:0:8}.zip -d ./public
-      - aws s3 sync public/ s3://staging-restaurant-vbucket/ --delete --exclude ".DS_Store"
+      - aws s3 sync ./public/ s3://staging-restaurant-vbucket/ --delete --exclude ".DS_Store"
