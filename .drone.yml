@@ -7,6 +7,7 @@ name: hugo-website-ci
 # Cette pipeline se déclenchera uniquement sur les pushs vers la branche 'main'.
 trigger:
   branch:
+    - main
     - master
   event:
     - push
@@ -46,7 +47,7 @@ steps:
       # Région AWS du bucket
       region: us-east-1
       # Dossier source (généré par l'étape 'hugo-build')
-      source: public/
+      source: public/**
       # Dossier de destination dans le bucket (optionnel, '/' par défaut)
       target: /
       # Supprime les fichiers distants qui n'existent pas dans la source
